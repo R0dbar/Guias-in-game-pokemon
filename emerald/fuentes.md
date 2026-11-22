@@ -1,10 +1,9 @@
-# Fuentes de la guía
+# Fuentes de la guía — Pokémon Esmeralda
 
-Qué se ha consultado para escribir cada guía y con qué licencia. Los textos de la guía son propios: de las fuentes
+Qué se ha consultado para escribir esta guía y con qué licencia. Los textos de la guía son propios: de las fuentes
 se toman datos (orden de la historia, nombres), no frases. Si alguna vez se adapta texto de una fuente con licencia
 libre, se indica aquí qué texto y se respeta su licencia.
 
-## Pokémon Esmeralda
 
 | Qué | Fuente | Licencia |
 |---|---|---|

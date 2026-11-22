@@ -1,5 +1,5 @@
-# Clones externos: el juego (nuestros cambios van como parches en patches/emerald/) y su compilador
-/emerald/
+# Clones externos: el decomp de cada juego (nuestros cambios van como parches en <juego>/patches/) y su compilador
+/emerald/pokeemerald/
 /agbcc/
 
 # Nunca ROMs, BIOS, claves, partidas ni savestates
@@ -22,7 +22,7 @@ bios9.bin
 firmware.bin
 aes_keys.txt
 seeddb.bin
-/saves/
+saves/
 
 # Trabajo local
 .superpowers/
@@ -38,5 +38,5 @@ __pycache__/
 .DS_Store
 
 # Solo para trabajo local (no se publican)
-/AGENTS.md
+AGENTS.md
 /docs/superpowers/
