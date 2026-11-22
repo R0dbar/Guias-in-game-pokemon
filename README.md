@@ -12,7 +12,7 @@ del juego. La guía se abre desde la mochila (dos objetos, uno por idioma) o des
 | Juego | Estado | Detalles |
 |---|---|---|
 | Pokémon Esmeralda (USA) | Prueba de concepto: hasta la primera medalla | [emerald/](emerald/README.md) |
-| Pokémon Rubí y Zafiro (USA) | En preparación | — |
+| Pokémon Rubí y Zafiro (USA) | Prueba de concepto: hasta la primera medalla | [ruby/](ruby/README.md) |
 
 Cada juego tiene su carpeta con todo lo suyo: cómo compilarlo, sus parches, su glosario y sus fuentes.
 

@@ -1,0 +1,176 @@
+From dd91ddfc9c2fa2058e68ac9d48a48d058751bca5 Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 23:52:55 +0100
+Subject: [PATCH 2/3] =?UTF-8?q?feat:=20objetos=20GUIDE=20(EN)=20y=20GU?=
+ =?UTF-8?q?=C3=8DA=20(ES)=20en=20la=20mochila=20desde=20partida=20nueva?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/constants/items.h       |  6 +++++-
+ include/item_use.h              |  1 +
+ src/data/item_descriptions_en.h | 10 ++++++++++
+ src/data/items_en.h             | 34 +++++++++++++++++++++++++++++++++
+ src/item_use.c                  | 20 +++++++++++++++++++
+ src/new_game.c                  |  4 ++++
+ 6 files changed, 74 insertions(+), 1 deletion(-)
+
+diff --git a/include/constants/items.h b/include/constants/items.h
+index 6560ceb08..0c3639916 100644
+--- a/include/constants/items.h
++++ b/include/constants/items.h
+@@ -369,7 +369,11 @@
+ #define ITEM_15B 347
+ #define ITEM_15C 348
+ 
+-#define ITEMS_COUNT 349
++// Guía integrada
++#define ITEM_GUIDE_EN 349
++#define ITEM_GUIDE_ES 350
++
++#define ITEMS_COUNT 351
+ #define ITEM_FIELD_ARROW ITEMS_COUNT
+ 
+ #define NUM_TECHNICAL_MACHINES 50
+diff --git a/include/item_use.h b/include/item_use.h
+index 4b60f8558..2a6696b9f 100644
+--- a/include/item_use.h
++++ b/include/item_use.h
+@@ -22,6 +22,7 @@ void DisplayItemRespondingMessageAndExitItemfinder(u8);
+ void RotatePlayerAndExitItemfinder(u8);
+ void ItemUseOutOfBattle_PokeblockCase(u8);
+ void ItemUseOutOfBattle_CoinCase(u8);
++void ItemUseOutOfBattle_Guide(u8);
+ void ItemUseOutOfBattle_SSTicket(u8);
+ void ItemUseOutOfBattle_WailmerPail(u8);
+ void ItemUseOutOfBattle_Medicine(u8);
+diff --git a/src/data/item_descriptions_en.h b/src/data/item_descriptions_en.h
+index 4d326d834..a4209a01b 100644
+--- a/src/data/item_descriptions_en.h
++++ b/src/data/item_descriptions_en.h
+@@ -1390,3 +1390,13 @@ static const u8 gItemDescription_HM08[] = _(
+     "attacks next turn.");
+ 
+ static const u8 gItemDescription_Dummy[] = _("");
++
++static const u8 gItemDescription_GuideEn[] = _(
++    "Shows your current\n"
++    "goal and where to\n"
++    "go next.");
++
++static const u8 gItemDescription_GuideEs[] = _(
++    "Muestra tu objetivo\n"
++    "actual y adónde\n"
++    "ir después.");
+diff --git a/src/data/items_en.h b/src/data/items_en.h
+index 518a83173..d19f36088 100644
+--- a/src/data/items_en.h
++++ b/src/data/items_en.h
+@@ -5584,4 +5584,38 @@ const struct Item gItems[] =
+         .battleUseFunc = NULL,
+         .secondaryId = 0,
+     },
++
++    // Guía integrada (sin icono: la mochila de Rubí no los muestra)
++    {
++        .name = _("GUIDE (EN)"),
++        .itemId = ITEM_GUIDE_EN,
++        .price = 0,
++        .holdEffect = HOLD_EFFECT_NONE,
++        .holdEffectParam = 0,
++        .description = gItemDescription_GuideEn,
++        .importance = 1,
++        .exitsBagOnUse = 0,
++        .pocket = POCKET_KEY_ITEMS,
++        .type = 4,
++        .fieldUseFunc = ItemUseOutOfBattle_Guide,
++        .battleUsage = 0,
++        .battleUseFunc = NULL,
++        .secondaryId = 0,
++    },
++    {
++        .name = _("GUÍA (ES)"),
++        .itemId = ITEM_GUIDE_ES,
++        .price = 0,
++        .holdEffect = HOLD_EFFECT_NONE,
++        .holdEffectParam = 0,
++        .description = gItemDescription_GuideEs,
++        .importance = 1,
++        .exitsBagOnUse = 0,
++        .pocket = POCKET_KEY_ITEMS,
++        .type = 4,
++        .fieldUseFunc = ItemUseOutOfBattle_Guide,
++        .battleUsage = 0,
++        .battleUseFunc = NULL,
++        .secondaryId = 0,
++    },
+ };
+diff --git a/src/item_use.c b/src/item_use.c
+index 02d45cb39..3fdeae769 100644
+--- a/src/item_use.c
++++ b/src/item_use.c
+@@ -39,6 +39,7 @@
+ #include "constants/map_types.h"
+ #include "constants/species.h"
+ #include "constants/vars.h"
++#include "guide.h"
+ 
+ extern void (*gFieldItemUseCallback)(u8);
+ extern void (*gFieldCallback)(void);
+@@ -613,6 +614,25 @@ void ItemUseOutOfBattle_CoinCase(u8 taskId)
+     }
+ }
+ 
++// DisplayItemMessageOnField cierra la caja al acabar de escribir; como gOtherText_Coins3, esperar a que se pulse A.
++static const u8 sText_GuidePauseUntilPress[] = _("{PAUSE_UNTIL_PRESS}");
++
++void ItemUseOutOfBattle_Guide(u8 taskId)
++{
++    Guide_BufferCurrentStep(gSpecialVar_ItemId == ITEM_GUIDE_ES ? GUIDE_LANG_ES : GUIDE_LANG_EN);
++    StringAppend(gStringVar4, sText_GuidePauseUntilPress);
++
++    if (!gTasks[taskId].data[2])
++    {
++        Menu_EraseWindowRect(0, 13, 13, 20);
++        DisplayItemMessageOnField(taskId, gStringVar4, CleanUpItemMenuMessage, 1);
++    }
++    else
++    {
++        DisplayItemMessageOnField(taskId, gStringVar4, CleanUpOverworldMessage, 0);
++    }
++}
++
+ static void SSTicketWaitForAButtonPress(u8 taskId)
+ {
+     if (JOY_NEW(A_BUTTON))
+diff --git a/src/new_game.c b/src/new_game.c
+index 3b914fb4c..b04c2b3dd 100644
+--- a/src/new_game.c
++++ b/src/new_game.c
+@@ -3,6 +3,7 @@
+ #include "battle_records.h"
+ #include "berry.h"
+ #include "clock.h"
++#include "constants/items.h"
+ #include "constants/maps.h"
+ #include "constants/species.h"
+ #include "contest.h"
+@@ -12,6 +13,7 @@
+ #include "easy_chat.h"
+ #include "event_data.h"
+ #include "field_specials.h"
++#include "item.h"
+ #include "item_menu.h"
+ #include "lottery_corner.h"
+ #include "mail_data.h"
+@@ -193,6 +195,8 @@ void NewGameInitData(void)
+     ClearRoamerLocationData();
+     gSaveBlock1.registeredItem = 0;
+     ClearBag();
++    AddBagItem(ITEM_GUIDE_EN, 1);
++    AddBagItem(ITEM_GUIDE_ES, 1);
+     NewGameInitPCItems();
+     ClearPokeblocks();
+     ClearDecorationInventories();

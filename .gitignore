@@ -1,5 +1,6 @@
 # Clones externos: el decomp de cada juego (nuestros cambios van como parches en <juego>/patches/) y su compilador
 /emerald/pokeemerald/
+/ruby/pokeruby/
 /agbcc/
 
 # Nunca ROMs, BIOS, claves, partidas ni savestates

@@ -7,7 +7,8 @@ cd "$(dirname "$0")/.."
 
 case "${1-}" in
     emerald) DECOMP=emerald/pokeemerald BASE=9103e529c2fbdd7add4a1ff3350c6c1f92112c42 ;;
-    *) echo "uso: tools/export_patches.sh emerald" >&2; exit 2 ;;
+    ruby) DECOMP=ruby/pokeruby BASE=5784633ce4ef7ade1a7f2d2d0c288e3d5e6cdd7f ;;
+    *) echo "uso: tools/export_patches.sh emerald|ruby" >&2; exit 2 ;;
 esac
 OUT="$PWD/$1/patches"
 

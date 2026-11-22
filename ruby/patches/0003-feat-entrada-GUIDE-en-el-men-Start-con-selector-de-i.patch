@@ -1,0 +1,253 @@
+From 7228660db45ad83ee2b2308447e26d1a93daf063 Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 23:53:58 +0100
+Subject: [PATCH 3/3] =?UTF-8?q?feat:=20entrada=20GUIDE=20en=20el=20men?=
+ =?UTF-8?q?=C3=BA=20Start=20con=20selector=20de=20idioma?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ data/event_scripts.s            |  1 +
+ data/scripts/guide.inc          | 10 ++++++++++
+ data/specials.inc               |  1 +
+ include/constants/script_menu.h |  3 +++
+ include/guide.h                 | 10 ++++++++++
+ src/guide.c                     | 10 ++++++++++
+ src/script_menu.c               |  8 ++++++++
+ src/start_menu.c                | 29 ++++++++++++++++++++++++-----
+ 8 files changed, 67 insertions(+), 5 deletions(-)
+ create mode 100644 data/scripts/guide.inc
+
+diff --git a/data/event_scripts.s b/data/event_scripts.s
+index e9a9feb61..c62d20774 100644
+--- a/data/event_scripts.s
++++ b/data/event_scripts.s
+@@ -1629,6 +1629,7 @@ MauvilleCity_GameCorner_EventScript_1C40DA:: @ 81C40DA
+ 	.include "data/text/shoal_cave.inc"
+ 	.include "data/text/check_furniture.inc"
+ 	.include "data/scripts/cave_hole.inc"
++	.include "data/scripts/guide.inc"
+ 
+ @ 81C6BF9
+ 	msgbox Text_1C6C2B, MSGBOX_NPC
+diff --git a/data/scripts/guide.inc b/data/scripts/guide.inc
+new file mode 100644
+index 000000000..571765bf1
+--- /dev/null
++++ b/data/scripts/guide.inc
+@@ -0,0 +1,10 @@
++EventScript_Guide::
++	lockall
++	multichoice 0, 0, MULTI_GUIDE_LANGUAGE, 0
++	compare VAR_RESULT, MULTI_B_PRESSED
++	goto_if_eq EventScript_GuideEnd
++	special Guide_BufferCurrentStepFromResult
++	msgbox gStringVar4, MSGBOX_DEFAULT
++EventScript_GuideEnd:
++	releaseall
++	end
+diff --git a/data/specials.inc b/data/specials.inc
+index 283f1a3da..fdf96fea7 100644
+--- a/data/specials.inc
++++ b/data/specials.inc
+@@ -353,3 +353,4 @@ gSpecials::
+ .ifdef GERMAN
+ 	def_special nullsub_814B200
+ .endif
++	def_special Guide_BufferCurrentStepFromResult
+diff --git a/include/constants/script_menu.h b/include/constants/script_menu.h
+index fc429b620..42d57168e 100644
+--- a/include/constants/script_menu.h
++++ b/include/constants/script_menu.h
+@@ -7,6 +7,9 @@
+ 
+ #define MULTI_B_PRESSED  127
+ 
++// Índice en gMultichoiceLists (src/script_menu.c), que no tiene constantes: va justo después de la 72.
++#define MULTI_GUIDE_LANGUAGE 73
++
+ // Multichoice Ids
+ // TODO
+ 
+diff --git a/include/guide.h b/include/guide.h
+index 7d6e7b640..b00404a18 100644
+--- a/include/guide.h
++++ b/include/guide.h
+@@ -6,4 +6,14 @@ enum { GUIDE_LANG_EN, GUIDE_LANG_ES, GUIDE_LANG_COUNT };
+ // Deja en gStringVar4 el objetivo y el destino del primer paso pendiente, o el texto de fin.
+ void Guide_BufferCurrentStep(u8 lang);
+ 
++// Special de EventScript_Guide: idioma = opción elegida en el multichoice (VAR_RESULT).
++void Guide_BufferCurrentStepFromResult(void);
++
++extern const u8 gText_MenuGuide[];
++extern const u8 gText_GuideEnglish[];
++extern const u8 gText_GuideSpanish[];
++
++// Selector de idioma del menú Start (data/scripts/guide.inc); pokeruby no tiene event_scripts.h.
++extern const u8 EventScript_Guide[];
++
+ #endif // GUARD_GUIDE_H
+diff --git a/src/guide.c b/src/guide.c
+index 4e6e7aab5..71d7eaff3 100644
+--- a/src/guide.c
++++ b/src/guide.c
+@@ -51,3 +51,13 @@ void Guide_BufferCurrentStep(u8 lang)
+     }
+     StringCopy(gStringVar4, sGuideEndText[lang]);
+ }
++
++const u8 gText_MenuGuide[] = _("GUIDE");
++const u8 gText_GuideEnglish[] = _("ENGLISH");
++const u8 gText_GuideSpanish[] = _("ESPAÑOL");
++
++// El orden de MultichoiceList_GuideLanguage coincide con el enum de idiomas.
++void Guide_BufferCurrentStepFromResult(void)
++{
++    Guide_BufferCurrentStep(gSpecialVar_Result);
++}
+diff --git a/src/script_menu.c b/src/script_menu.c
+index 6bbf5610b..614fd8f28 100644
+--- a/src/script_menu.c
++++ b/src/script_menu.c
+@@ -12,6 +12,7 @@
+ #include "strings.h"
+ #include "task.h"
+ #include "constants/script_menu.h"
++#include "guide.h"
+ 
+ // multichoice lists
+ const struct MenuAction MultichoiceList_00[] =
+@@ -479,6 +480,12 @@ struct MultichoiceListStruct
+     u8 count;
+ };
+ 
++const struct MenuAction MultichoiceList_GuideLanguage[] =
++{
++    {gText_GuideEnglish, NULL},
++    {gText_GuideSpanish, NULL},
++};
++
+ const struct MultichoiceListStruct gMultichoiceLists[] =
+ {
+     {MultichoiceList_00, ARRAY_COUNT(MultichoiceList_00)},
+@@ -554,6 +561,7 @@ const struct MultichoiceListStruct gMultichoiceLists[] =
+     {MultichoiceList_70, ARRAY_COUNT(MultichoiceList_70)},
+     {MultichoiceList_71, ARRAY_COUNT(MultichoiceList_71)},
+     {MultichoiceList_72, ARRAY_COUNT(MultichoiceList_72)},
++    [MULTI_GUIDE_LANGUAGE] = {MultichoiceList_GuideLanguage, ARRAY_COUNT(MultichoiceList_GuideLanguage)},
+ };
+ 
+ const u8 *const gStdStrings[] =
+diff --git a/src/start_menu.c b/src/start_menu.c
+index 4bdca00fe..aa65004b9 100644
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -1,6 +1,7 @@
+ #include "global.h"
+ #include "battle_tower.h"
+ #include "start_menu.h"
++#include "guide.h"
+ #include "event_data.h"
+ #include "field_player_avatar.h"
+ #include "field_weather.h"
+@@ -43,7 +44,8 @@ enum {
+     MENU_ACTION_OPTION,
+     MENU_ACTION_EXIT,
+     MENU_ACTION_RETIRE,
+-    MENU_ACTION_PLAYER_LINK
++    MENU_ACTION_PLAYER_LINK,
++    MENU_ACTION_GUIDE,
+ };
+ 
+ #if DEBUG
+@@ -84,6 +86,7 @@ static u8 StartMenu_OptionCallback(void);
+ static u8 StartMenu_ExitCallback(void);
+ static u8 StartMenu_RetireCallback(void);
+ static u8 StartMenu_PlayerLinkCallback(void);
++static u8 StartMenu_GuideCallback(void);
+ 
+ static const struct MenuAction sStartMenuItems[] =
+ {
+@@ -97,6 +100,7 @@ static const struct MenuAction sStartMenuItems[] =
+     { SystemText_Exit, StartMenu_ExitCallback },
+     { SystemText_Retire, StartMenu_RetireCallback },
+     { SystemText_Player, StartMenu_PlayerLinkCallback },
++    { gText_MenuGuide, StartMenu_GuideCallback },
+ };
+ 
+ //Private functions
+@@ -271,6 +275,7 @@ static void BuildStartMenuActions_Normal(void)
+         AddStartMenuAction(MENU_ACTION_POKENAV);
+     AddStartMenuAction(MENU_ACTION_PLAYER);
+     AddStartMenuAction(MENU_ACTION_SAVE);
++    AddStartMenuAction(MENU_ACTION_GUIDE);
+     AddStartMenuAction(MENU_ACTION_OPTION);
+     AddStartMenuAction(MENU_ACTION_EXIT);
+ }
+@@ -305,6 +310,12 @@ static void DisplaySafariBallsWindow(void)
+     Menu_PrintText(gOtherText_SafariStock, 1, 1);
+ }
+ 
++// Con 9 entradas (GUIDE + POKéNAV) el menú pierde la fila de margen superior y la inferior para caber en las 20 filas.
++static u8 GetStartMenuTop(void)
++{
++    return sNumStartMenuActions > 8 ? 1 : 2;
++}
++
+ //Prints n menu items starting at *index
+ static bool32 PrintStartMenuItemsMultistep(s16 *index, u32 n)
+ {
+@@ -312,7 +323,7 @@ static bool32 PrintStartMenuItemsMultistep(s16 *index, u32 n)
+ 
+     do
+     {
+-        Menu_PrintText(sStartMenuItems[sCurrentStartMenuActions[_index]].text, 23, 2 + _index * 2);
++        Menu_PrintText(sStartMenuItems[sCurrentStartMenuActions[_index]].text, 23, GetStartMenuTop() + _index * 2);
+         _index++;
+         if (_index >= sNumStartMenuActions)
+         {
+@@ -334,7 +345,7 @@ static bool32 InitStartMenuMultistep(s16 *step, s16 *index)
+         (*step)++;
+         break;
+     case 2:
+-        Menu_DrawStdWindowFrame(22, 0, 29, sNumStartMenuActions * 2 + 3);
++        Menu_DrawStdWindowFrame(22, 0, 29, min(GetStartMenuTop() + sNumStartMenuActions * 2 + 1, 19));
+         *index = 0;
+         (*step)++;
+         break;
+@@ -351,7 +362,7 @@ static bool32 InitStartMenuMultistep(s16 *step, s16 *index)
+         (*step)++;
+         break;
+     case 5:
+-        sStartMenuCursorPos = InitMenu(0, 0x17, 2, sNumStartMenuActions, sStartMenuCursorPos, 6);
++        sStartMenuCursorPos = InitMenu(0, 0x17, GetStartMenuTop(), sNumStartMenuActions, sStartMenuCursorPos, 6);
+         return TRUE;
+     }
+     return FALSE;
+@@ -436,7 +447,8 @@ static u8 StartMenu_InputProcessCallback(void)
+         gMenuCallback = sStartMenuItems[sCurrentStartMenuActions[sStartMenuCursorPos]].func;
+         if (gMenuCallback != StartMenu_SaveCallback &&
+            gMenuCallback != StartMenu_ExitCallback &&
+-           gMenuCallback != StartMenu_RetireCallback)
++           gMenuCallback != StartMenu_RetireCallback &&
++           gMenuCallback != StartMenu_GuideCallback) // la guía se muestra sobre el mapa: sin fundido a negro
+             FadeScreen(1, 0);
+         return 0;
+     }
+@@ -545,6 +557,13 @@ static u8 StartMenu_RetireCallback(void)
+     return 1;
+ }
+ 
++static u8 StartMenu_GuideCallback(void)
++{
++    CloseMenu();
++    ScriptContext_SetupScript(EventScript_Guide);
++    return 1;
++}
++
+ //When player selects their name in multiplayer mode
+ static u8 StartMenu_PlayerLinkCallback(void)
+ {
