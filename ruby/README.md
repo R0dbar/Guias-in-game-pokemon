@@ -62,5 +62,4 @@ Desde la raíz del repo:
 | Exportar los cambios del juego | `tools/export_patches.sh ruby` | un `.patch` por commit en `ruby/patches/` |
 
 Los pasos de la guía están en `ruby/pokeruby/src/data/guide_steps.h`. Los nombres españoles salen del
-[glosario](glosario.md) y las fuentes usadas están en [fuentes.md](fuentes.md). Cómo añadir o cambiar un paso:
-[README general](../README.md#añadir-o-cambiar-un-paso). Licencia: [MIT](../LICENSE).
+[glosario](glosario.md) y las fuentes usadas están en [fuentes.md](fuentes.md). Licencia: [MIT](../LICENSE).

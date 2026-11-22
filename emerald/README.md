@@ -55,5 +55,4 @@ Desde la raíz del repo:
 | Exportar los cambios del juego | `tools/export_patches.sh emerald` | un `.patch` por commit en `emerald/patches/` |
 
 Los pasos de la guía están en `emerald/pokeemerald/src/data/guide_steps.h`. Los nombres españoles salen del
-[glosario](glosario.md) y las fuentes usadas están en [fuentes.md](fuentes.md). Cómo añadir o cambiar un paso:
-[README general](../README.md#añadir-o-cambiar-un-paso). Licencia: [MIT](../LICENSE).
+[glosario](glosario.md) y las fuentes usadas están en [fuentes.md](fuentes.md). Licencia: [MIT](../LICENSE).
