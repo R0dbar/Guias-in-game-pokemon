@@ -1,4 +1,8 @@
-"""Comprueba los textos de la guía de un decomp: cada par EN/ES completo y cada línea dentro de la caja.
+"""Comprueba los textos de src/data/guide_steps.h de un decomp.
+
+Detecta: un texto sin su pareja EN/ES, una línea de más de 216 px, un carácter que no está en charmap.txt
+y placeholders {…}. No detecta: un texto vacío _(""), una caja de más de 2 líneas ni un texto de más de
+GUIDE_TEXT_LEN bytes (eso lo para la compilación).
 
 Uso: python3 tools/check_guide.py <dir_decomp>
 """

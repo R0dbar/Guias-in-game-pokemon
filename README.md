@@ -4,15 +4,21 @@ Añade a Pokémon Esmeralda una guía que puedes consultar en cualquier momento:
 actual y a dónde tienes que ir**. Está en inglés y en español; en español, los nombres salen como en el juego
 (en inglés) con el nombre español entre paréntesis: `RUSTBORO CITY (Ciudad Férrica)`.
 
-**Estado:** prueba de concepto. La guía cubre el principio del juego, hasta la primera medalla.
+**Estado:** prueba de concepto. La guía cubre el principio del juego, hasta la primera medalla (5 pasos).
+Después muestra un mensaje de fin.
 
 ## En el juego
 
-- **Mochila:** desde la partida nueva tienes `GUIDE (EN)` y `GUÍA (ES)` en KEY ITEMS. USE muestra el paso actual;
-  REGISTER lo deja en el botón SELECT.
-- **Menú START:** entrada `GUIDE` → eliges `ENGLISH` o `ESPAÑOL` → muestra el paso actual.
+Hay dos formas de abrir la guía; las dos muestran lo mismo:
 
-La guía solo lee el progreso que el juego ya guarda: funciona con cualquier partida y no cambia la partida guardada.
+- **Mochila:** en KEY ITEMS están `GUIDE (EN)` y `GUÍA (ES)`, uno por idioma. USE muestra el paso actual;
+  REGISTER lo deja en el botón SELECT para abrirlo desde el mapa.
+- **Menú START:** entrada `GUIDE` → eliges `ENGLISH` o `ESPAÑOL` → muestra el paso actual. B cierra sin mostrar nada.
+
+El mensaje tiene dos partes: primero el objetivo y, al pulsar A, a dónde ir.
+
+La guía solo lee el progreso que el juego ya guarda y no escribe nada en la partida. Los dos objetos se reciben al
+empezar una partida nueva: una partida guardada antes de instalar la guía no los tiene, pero sí la entrada del menú START.
 
 ## Compilar
 
@@ -25,9 +31,11 @@ No hace falta una ROM original para compilar.
 2. Desde la raíz de este repo:
 
    ```sh
+   # el decomp, en el commit sobre el que están hechos los parches, con ellos aplicados en la rama guide
    git clone https://github.com/pret/pokeemerald emerald
    git -C emerald checkout -b guide 9103e529c2fbdd7add4a1ff3350c6c1f92112c42
    git -C emerald am "$PWD"/patches/emerald/*.patch
+   # el compilador del decomp, instalado dentro de emerald/
    git clone https://github.com/pret/agbcc
    (cd agbcc && ./build.sh && ./install.sh ../emerald)
    make -C emerald -j"$(nproc)"
@@ -48,16 +56,38 @@ con ellos.
 
 ## Desarrollo
 
-Los cambios del juego se hacen en `emerald/` (rama `guide`) y se commitean allí. Después se exportan como parches
-y se commitean en este repo; sin ese paso, el cambio no llega aquí.
+Hay dos repos git:
 
-| Para qué | Comando |
-|---|---|
-| Compilar la ROM | `make -C emerald -j$(nproc)` |
-| Comprobar los textos de la guía (idiomas y ancho de línea) | `python3 tools/check_guide.py emerald` |
-| Tests del comprobador | `python3 -m unittest discover -s tools -v` |
-| Exportar los cambios del juego a `patches/emerald/` | `tools/export_patches.sh` |
+- **Este**, con una sola rama, `main`. Es lo que se publica.
+- **`emerald/`**, el clon de pokeemerald, dentro de este pero ignorado por él. Nuestros cambios van en su rama local
+  `guide`, que no se sube a ningún sitio.
 
-Los pasos de la guía están en `emerald/src/data/guide_steps.h`. Los nombres españoles salen de
-[docs/glosario-emerald.md](docs/glosario-emerald.md) y las fuentes, de [docs/fuentes.md](docs/fuentes.md).
-Los textos son propios: no se copia texto de guías con copyright.
+Los cambios del juego se hacen en `emerald/` y se commitean allí, en `guide`; después se exportan como parches a
+`patches/emerald/` y se commitean aquí, en `main`. Sin ese último paso, el cambio no llega a este repo.
+
+Comandos, desde la raíz de este repo:
+
+| Para qué | Comando | Resultado esperado |
+|---|---|---|
+| Compilar la ROM | `make -C emerald -j$(nproc)` | `emerald/pokeemerald.gba` |
+| Comprobar los textos de la guía | `python3 tools/check_guide.py emerald` | `OK: <n> pares EN/ES` |
+| Tests del comprobador | `python3 -m unittest discover -s tools -v` | `OK` |
+| Exportar los cambios del juego | `tools/export_patches.sh` | un `.patch` por commit en `patches/emerald/` |
+
+`check_guide.py` comprueba que cada texto tiene versión EN y ES, que cada línea cabe en la caja (216 px), que todos
+los caracteres existen en la fuente del juego y que no hay placeholders `{…}`. No detecta un texto vacío ni una caja
+con más de 2 líneas: eso se ve jugando.
+
+### Añadir o cambiar un paso
+
+Los pasos están en `emerald/src/data/guide_steps.h`, en el orden de la historia. Cada uno tiene:
+
+- **Condición:** el flag (`doneFlag`) o la var (`doneVar` ≥ `doneVarMin`) que el juego activa al completarlo.
+  Sale del script del juego (`grep -rn "setflag FLAG_" emerald/data/maps/`), y se apunta en un comentario junto al paso.
+- **Textos** `objective` (qué hacer) y `location` (a dónde ir), en EN y ES. Cada uno empieza en una caja nueva.
+  Una caja admite 2 líneas (un `\n`); para más texto, `\p` abre otra caja.
+- **Nombres en español** del [glosario](docs/glosario-emerald.md). Las fuentes usadas están en [docs/fuentes.md](docs/fuentes.md).
+  Los textos son propios: no se copia texto de guías con copyright.
+
+Después: comprobar los textos, compilar, probar en el emulador en los dos idiomas, commitear en `emerald/`,
+exportar los parches y commitearlos aquí.
