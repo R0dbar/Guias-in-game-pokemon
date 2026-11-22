@@ -1,0 +1,32 @@
+From 27be5e8a481660dd88232e346e914842b17ef1d8 Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 17:24:02 +0100
+Subject: [PATCH 4/5] =?UTF-8?q?fix(guide):=20no=20fundir=20a=20negro=20al?=
+ =?UTF-8?q?=20abrir=20GUIDE=20desde=20el=20men=C3=BA=20Start?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+HandleStartMenuInput funde a negro con toda entrada que no esté en su lista
+de excepciones; la guía se muestra sobre el mapa (como SafariZoneRetire), así
+que la pantalla se quedaba en negro y el selector de idioma no se veía.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/start_menu.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/start_menu.c b/src/start_menu.c
+index 06b1dec8c..dfc3a2b17 100644
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -629,7 +629,8 @@ static bool8 HandleStartMenuInput(void)
+         if (gMenuCallback != StartMenuSaveCallback
+             && gMenuCallback != StartMenuExitCallback
+             && gMenuCallback != StartMenuSafariZoneRetireCallback
+-            && gMenuCallback != StartMenuBattlePyramidRetireCallback)
++            && gMenuCallback != StartMenuBattlePyramidRetireCallback
++            && gMenuCallback != StartMenuGuideCallback) // la guía se muestra sobre el mapa: sin fundido a negro
+         {
+            FadeScreen(FADE_TO_BLACK, 0);
+         }

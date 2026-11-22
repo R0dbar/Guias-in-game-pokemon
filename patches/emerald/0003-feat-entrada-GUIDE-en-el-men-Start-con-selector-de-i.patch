@@ -1,0 +1,273 @@
+From 152819d2f9f086a3ca3ba18cdac116e96a5e07fe Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 15:57:43 +0100
+Subject: [PATCH 3/5] =?UTF-8?q?feat:=20entrada=20GUIDE=20en=20el=20men?=
+ =?UTF-8?q?=C3=BA=20Start=20con=20selector=20de=20idioma?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Con 9 entradas (GUIDE + POKéNAV) la ventana se compacta para no salirse de la pantalla.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ data/event_scripts.s            |  1 +
+ data/scripts/guide.inc          |  9 +++++++++
+ data/specials.inc               |  1 +
+ include/constants/script_menu.h |  1 +
+ include/event_scripts.h         |  1 +
+ include/guide.h                 |  7 +++++++
+ src/data/script_menu.h          |  7 +++++++
+ src/guide.c                     | 10 ++++++++++
+ src/menu.c                      |  2 +-
+ src/script_menu.c               |  2 ++
+ src/start_menu.c                | 30 +++++++++++++++++++++++++-----
+ 11 files changed, 65 insertions(+), 6 deletions(-)
+ create mode 100644 data/scripts/guide.inc
+
+diff --git a/data/event_scripts.s b/data/event_scripts.s
+index 6834c98fb..e4017a86c 100644
+--- a/data/event_scripts.s
++++ b/data/event_scripts.s
+@@ -1053,6 +1053,7 @@ Common_EventScript_LegendaryFlewAway::
+ 	.include "data/scripts/move_tutors.inc"
+ 	.include "data/scripts/trainer_hill.inc"
+ 	.include "data/scripts/test_signpost.inc"
++	.include "data/scripts/guide.inc"
+ 	.include "data/text/frontier_brain.inc"
+ 	.include "data/text/save.inc"
+ 	.include "data/text/birch_speech.inc"
+diff --git a/data/scripts/guide.inc b/data/scripts/guide.inc
+new file mode 100644
+index 000000000..97f5f1809
+--- /dev/null
++++ b/data/scripts/guide.inc
+@@ -0,0 +1,9 @@
++EventScript_Guide::
++	lockall
++	multichoice 0, 0, MULTI_GUIDE_LANGUAGE, FALSE
++	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, EventScript_GuideEnd
++	special Guide_BufferCurrentStepFromResult
++	msgbox gStringVar4, MSGBOX_DEFAULT
++EventScript_GuideEnd:
++	releaseall
++	end
+diff --git a/data/specials.inc b/data/specials.inc
+index 34f27bfcf..c73cc8b04 100644
+--- a/data/specials.inc
++++ b/data/specials.inc
+@@ -540,3 +540,4 @@ gSpecials::
+ 	def_special RemoveRecordsWindow
+ 	def_special CloseDeptStoreElevatorWindow
+ 	def_special TrySetBattleTowerLinkType
++	def_special Guide_BufferCurrentStepFromResult
+diff --git a/include/constants/script_menu.h b/include/constants/script_menu.h
+index c58df7335..2779b5861 100644
+--- a/include/constants/script_menu.h
++++ b/include/constants/script_menu.h
+@@ -122,6 +122,7 @@
+ #define MULTI_SLATEPORT_TENT_RULES         111
+ #define MULTI_FALLARBOR_TENT_RULES         112
+ #define MULTI_TAG_MATCH_TYPE               113
++#define MULTI_GUIDE_LANGUAGE               114
+ 
+ // Lilycove SS Tidal Multichoice Selections
+ #define SSTIDAL_SELECTION_SLATEPORT        0
+diff --git a/include/event_scripts.h b/include/event_scripts.h
+index 4e0a88f82..2242c85f0 100644
+--- a/include/event_scripts.h
++++ b/include/event_scripts.h
+@@ -1,6 +1,7 @@
+ #ifndef GUARD_EVENT_SCRIPTS_H
+ #define GUARD_EVENT_SCRIPTS_H
+ 
++extern const u8 EventScript_Guide[];
+ extern const u8 EventScript_TestSignpostMsg[];
+ extern const u8 EventScript_TryGetTrainerScript[];
+ extern const u8 EventScript_StartTrainerApproach[];
+diff --git a/include/guide.h b/include/guide.h
+index 7d6e7b640..2347624a4 100644
+--- a/include/guide.h
++++ b/include/guide.h
+@@ -6,4 +6,11 @@ enum { GUIDE_LANG_EN, GUIDE_LANG_ES, GUIDE_LANG_COUNT };
+ // Deja en gStringVar4 el objetivo y el destino del primer paso pendiente, o el texto de fin.
+ void Guide_BufferCurrentStep(u8 lang);
+ 
++// Special de EventScript_Guide: idioma = opción elegida en el multichoice (VAR_RESULT).
++void Guide_BufferCurrentStepFromResult(void);
++
++extern const u8 gText_MenuGuide[];
++extern const u8 gText_GuideEnglish[];
++extern const u8 gText_GuideSpanish[];
++
+ #endif // GUARD_GUIDE_H
+diff --git a/src/data/script_menu.h b/src/data/script_menu.h
+index 79355748c..351487aa8 100644
+--- a/src/data/script_menu.h
++++ b/src/data/script_menu.h
+@@ -776,6 +776,12 @@ static const struct MenuAction MultichoiceList_Exit[] =
+     {gText_Exit},
+ };
+ 
++static const struct MenuAction MultichoiceList_GuideLanguage[] =
++{
++    {gText_GuideEnglish},
++    {gText_GuideSpanish},
++};
++
+ struct MultichoiceListStruct
+ {
+     const struct MenuAction *list;
+@@ -898,6 +904,7 @@ static const struct MultichoiceListStruct sMultichoiceLists[] =
+     [MULTI_SLATEPORT_TENT_RULES]       = MULTICHOICE(MultichoiceList_SlateportTentRules),
+     [MULTI_FALLARBOR_TENT_RULES]       = MULTICHOICE(MultichoiceList_FallarborTentRules),
+     [MULTI_TAG_MATCH_TYPE]             = MULTICHOICE(MultichoiceList_TagMatchType),
++    [MULTI_GUIDE_LANGUAGE]             = MULTICHOICE(MultichoiceList_GuideLanguage),
+ };
+ 
+ const u8 *const gStdStrings[] =
+diff --git a/src/guide.c b/src/guide.c
+index 18fdbecf4..1b09ebfb8 100644
+--- a/src/guide.c
++++ b/src/guide.c
+@@ -48,3 +48,13 @@ void Guide_BufferCurrentStep(u8 lang)
+     }
+     StringCopy(gStringVar4, sGuideEndText[lang]);
+ }
++
++const u8 gText_MenuGuide[] = _("GUIDE");
++const u8 gText_GuideEnglish[] = _("ENGLISH");
++const u8 gText_GuideSpanish[] = _("ESPAÑOL");
++
++// El orden de MultichoiceList_GuideLanguage coincide con el enum de idiomas.
++void Guide_BufferCurrentStepFromResult(void)
++{
++    Guide_BufferCurrentStep(gSpecialVar_Result);
++}
+diff --git a/src/menu.c b/src/menu.c
+index 094ccd7aa..383b51a93 100644
+--- a/src/menu.c
++++ b/src/menu.c
+@@ -490,7 +490,7 @@ u8 GetPlayerTextSpeedDelay(void)
+ u8 AddStartMenuWindow(u8 numActions)
+ {
+     if (sStartMenuWindowId == WINDOW_NONE)
+-        sStartMenuWindowId = AddWindowParameterized(0, 22, 1, 7, (numActions * 2) + 2, 15, 0x139);
++        sStartMenuWindowId = AddWindowParameterized(0, 22, 1, 7, min((numActions * 2) + 2, 18), 15, 0x139); // 9 entradas no caben con el margen
+     return sStartMenuWindowId;
+ }
+ 
+diff --git a/src/script_menu.c b/src/script_menu.c
+index e923f4031..30fc8fede 100644
+--- a/src/script_menu.c
++++ b/src/script_menu.c
+@@ -18,6 +18,8 @@
+ #include "constants/script_menu.h"
+ #include "constants/songs.h"
+ 
++#include "guide.h"
++
+ #include "data/script_menu.h"
+ 
+ static EWRAM_DATA u8 sProcessInputDelay = 0;
+diff --git a/src/start_menu.c b/src/start_menu.c
+index 647fc0378..06b1dec8c 100644
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -7,6 +7,7 @@
+ #include "event_object_movement.h"
+ #include "event_object_lock.h"
+ #include "event_scripts.h"
++#include "guide.h"
+ #include "fieldmap.h"
+ #include "field_effect.h"
+ #include "field_player_avatar.h"
+@@ -62,7 +63,8 @@ enum
+     MENU_ACTION_PLAYER_LINK,
+     MENU_ACTION_REST_FRONTIER,
+     MENU_ACTION_RETIRE_FRONTIER,
+-    MENU_ACTION_PYRAMID_BAG
++    MENU_ACTION_PYRAMID_BAG,
++    MENU_ACTION_GUIDE,
+ };
+ 
+ // Save status
+@@ -103,6 +105,7 @@ static bool8 StartMenuSafariZoneRetireCallback(void);
+ static bool8 StartMenuLinkModePlayerNameCallback(void);
+ static bool8 StartMenuBattlePyramidRetireCallback(void);
+ static bool8 StartMenuBattlePyramidBagCallback(void);
++static bool8 StartMenuGuideCallback(void);
+ 
+ // Menu callbacks
+ static bool8 SaveStartCallback(void);
+@@ -193,7 +196,8 @@ static const struct MenuAction sStartMenuItems[] =
+     [MENU_ACTION_PLAYER_LINK]     = {gText_MenuPlayer,  {.u8_void = StartMenuLinkModePlayerNameCallback}},
+     [MENU_ACTION_REST_FRONTIER]   = {gText_MenuRest,    {.u8_void = StartMenuSaveCallback}},
+     [MENU_ACTION_RETIRE_FRONTIER] = {gText_MenuRetire,  {.u8_void = StartMenuBattlePyramidRetireCallback}},
+-    [MENU_ACTION_PYRAMID_BAG]     = {gText_MenuBag,     {.u8_void = StartMenuBattlePyramidBagCallback}}
++    [MENU_ACTION_PYRAMID_BAG]     = {gText_MenuBag,     {.u8_void = StartMenuBattlePyramidBagCallback}},
++    [MENU_ACTION_GUIDE]           = {gText_MenuGuide,   {.u8_void = StartMenuGuideCallback}},
+ };
+ 
+ static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
+@@ -312,6 +316,12 @@ static void AddStartMenuAction(u8 action)
+     AppendToList(sCurrentStartMenuActions, &sNumStartMenuActions, action);
+ }
+ 
++// Con 9 entradas (GUIDE + POKéNAV) no cabe el margen superior: el menú se pega arriba. Ver AddStartMenuWindow.
++static u8 GetStartMenuTopOffset(void)
++{
++    return sNumStartMenuActions > 8 ? 0 : 9;
++}
++
+ static void BuildNormalStartMenu(void)
+ {
+     if (FlagGet(FLAG_SYS_POKEDEX_GET) == TRUE)
+@@ -332,6 +342,7 @@ static void BuildNormalStartMenu(void)
+ 
+     AddStartMenuAction(MENU_ACTION_PLAYER);
+     AddStartMenuAction(MENU_ACTION_SAVE);
++    AddStartMenuAction(MENU_ACTION_GUIDE);
+     AddStartMenuAction(MENU_ACTION_OPTION);
+     AddStartMenuAction(MENU_ACTION_EXIT);
+ }
+@@ -454,12 +465,12 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
+     {
+         if (sStartMenuItems[sCurrentStartMenuActions[index]].func.u8_void == StartMenuPlayerNameCallback)
+         {
+-            PrintPlayerNameOnWindow(GetStartMenuWindowId(), sStartMenuItems[sCurrentStartMenuActions[index]].text, 8, (index << 4) + 9);
++            PrintPlayerNameOnWindow(GetStartMenuWindowId(), sStartMenuItems[sCurrentStartMenuActions[index]].text, 8, (index << 4) + GetStartMenuTopOffset());
+         }
+         else
+         {
+             StringExpandPlaceholders(gStringVar4, sStartMenuItems[sCurrentStartMenuActions[index]].text);
+-            AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
++            AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + GetStartMenuTopOffset(), TEXT_SKIP_DRAW, NULL);
+         }
+ 
+         index++;
+@@ -508,7 +519,7 @@ static bool32 InitStartMenuStep(void)
+             sInitStartMenuData[0]++;
+         break;
+     case 5:
+-        sStartMenuCursorPos = InitMenuNormal(GetStartMenuWindowId(), FONT_NORMAL, 0, 9, 16, sNumStartMenuActions, sStartMenuCursorPos);
++        sStartMenuCursorPos = InitMenuNormal(GetStartMenuWindowId(), FONT_NORMAL, 0, GetStartMenuTopOffset(), 16, sNumStartMenuActions, sStartMenuCursorPos);
+         CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_MAP);
+         return TRUE;
+     }
+@@ -761,6 +772,15 @@ static bool8 StartMenuSafariZoneRetireCallback(void)
+     return TRUE;
+ }
+ 
++static bool8 StartMenuGuideCallback(void)
++{
++    RemoveExtraStartMenuWindows();
++    HideStartMenu();
++    ScriptContext_SetupScript(EventScript_Guide);
++
++    return TRUE;
++}
++
+ static bool8 StartMenuLinkModePlayerNameCallback(void)
+ {
+     if (!gPaletteFade.active)

@@ -1,0 +1,157 @@
+From 804fb198f1573af9b86cc332cdc161860a291f8b Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 15:56:15 +0100
+Subject: [PATCH 2/5] =?UTF-8?q?feat:=20objetos=20GUIDE=20(EN)=20y=20GU?=
+ =?UTF-8?q?=C3=8DA=20(ES)=20en=20la=20mochila=20desde=20partida=20nueva?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/constants/items.h         |  4 ++++
+ include/item_use.h                |  1 +
+ src/data/item_icon_table.h        |  2 ++
+ src/data/items.h                  | 24 ++++++++++++++++++++++++
+ src/data/text/item_descriptions.h | 10 ++++++++++
+ src/item_use.c                    | 15 +++++++++++++++
+ src/new_game.c                    |  2 ++
+ 7 files changed, 58 insertions(+)
+
+diff --git a/include/constants/items.h b/include/constants/items.h
+index aa241fa9e..60c0e12de 100644
+--- a/include/constants/items.h
++++ b/include/constants/items.h
+@@ -409,6 +409,10 @@ enum {
+     ITEM_MAGMA_EMBLEM,
+     ITEM_OLD_SEA_MAP,
+ 
++    // Guía integrada
++    ITEM_GUIDE_EN,
++    ITEM_GUIDE_ES,
++
+     ITEMS_COUNT
+ };
+ 
+diff --git a/include/item_use.h b/include/item_use.h
+index 52b07cd26..c498fedf3 100644
+--- a/include/item_use.h
++++ b/include/item_use.h
+@@ -7,6 +7,7 @@ void ItemUseOutOfBattle_Rod(u8 taskId);
+ void ItemUseOutOfBattle_Itemfinder(u8 var);
+ void ItemUseOutOfBattle_PokeblockCase(u8 taskId);
+ void ItemUseOutOfBattle_CoinCase(u8 taskId);
++void ItemUseOutOfBattle_Guide(u8 taskId);
+ void ItemUseOutOfBattle_PowderJar(u8 taskId);
+ void ItemUseOutOfBattle_WailmerPail(u8 taskId);
+ void ItemUseOutOfBattle_Medicine(u8 taskId);
+diff --git a/src/data/item_icon_table.h b/src/data/item_icon_table.h
+index 64328f7b1..cc7b7af21 100644
+--- a/src/data/item_icon_table.h
++++ b/src/data/item_icon_table.h
+@@ -401,6 +401,8 @@ const u32 *const gItemIconTable[ITEMS_COUNT + 1][2] =
+     // Emerald-only key items
+     [ITEM_MAGMA_EMBLEM] = {gItemIcon_MagmaEmblem, gItemIconPalette_MagmaEmblem},
+     [ITEM_OLD_SEA_MAP] = {gItemIcon_OldSeaMap, gItemIconPalette_OldSeaMap},
++    [ITEM_GUIDE_EN] = {gItemIcon_OldSeaMap, gItemIconPalette_OldSeaMap},
++    [ITEM_GUIDE_ES] = {gItemIcon_OldSeaMap, gItemIconPalette_OldSeaMap},
+     // Return to field arrow
+     [ITEMS_COUNT] = {gItemIcon_ReturnToFieldArrow, gItemIconPalette_ReturnToFieldArrow},
+ };
+diff --git a/src/data/items.h b/src/data/items.h
+index 27326e07f..89887bafe 100644
+--- a/src/data/items.h
++++ b/src/data/items.h
+@@ -4537,4 +4537,28 @@ const struct Item gItems[] =
+         .type = ITEM_USE_BAG_MENU,
+         .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+     },
++
++    [ITEM_GUIDE_EN] =
++    {
++        .name = _("GUIDE (EN)"),
++        .itemId = ITEM_GUIDE_EN,
++        .price = 0,
++        .description = sGuideEnDesc,
++        .importance = 1,
++        .pocket = POCKET_KEY_ITEMS,
++        .type = ITEM_USE_BAG_MENU,
++        .fieldUseFunc = ItemUseOutOfBattle_Guide,
++    },
++
++    [ITEM_GUIDE_ES] =
++    {
++        .name = _("GUÍA (ES)"),
++        .itemId = ITEM_GUIDE_ES,
++        .price = 0,
++        .description = sGuideEsDesc,
++        .importance = 1,
++        .pocket = POCKET_KEY_ITEMS,
++        .type = ITEM_USE_BAG_MENU,
++        .fieldUseFunc = ItemUseOutOfBattle_Guide,
++    },
+ };
+diff --git a/src/data/text/item_descriptions.h b/src/data/text/item_descriptions.h
+index 5f79efc57..2273a16d7 100644
+--- a/src/data/text/item_descriptions.h
++++ b/src/data/text/item_descriptions.h
+@@ -1549,3 +1549,13 @@ static const u8 sOldSeaMapDesc[] = _(
+     "A faded sea chart\n"
+     "that shows the way\n"
+     "to a certain island.");
++
++static const u8 sGuideEnDesc[] = _(
++    "Shows your current\n"
++    "goal and where to\n"
++    "go next.");
++
++static const u8 sGuideEsDesc[] = _(
++    "Muestra tu objetivo\n"
++    "actual y adónde\n"
++    "ir después.");
+diff --git a/src/item_use.c b/src/item_use.c
+index 1884801d6..cad58c83d 100755
+--- a/src/item_use.c
++++ b/src/item_use.c
+@@ -37,6 +37,7 @@
+ #include "task.h"
+ #include "text.h"
+ #include "constants/event_bg.h"
++#include "guide.h"
+ #include "constants/event_objects.h"
+ #include "constants/item_effects.h"
+ #include "constants/items.h"
+@@ -655,6 +656,20 @@ void ItemUseOutOfBattle_CoinCase(u8 taskId)
+     }
+ }
+ 
++void ItemUseOutOfBattle_Guide(u8 taskId)
++{
++    Guide_BufferCurrentStep(gSpecialVar_ItemId == ITEM_GUIDE_ES ? GUIDE_LANG_ES : GUIDE_LANG_EN);
++
++    if (!gTasks[taskId].tUsingRegisteredKeyItem)
++    {
++        DisplayItemMessage(taskId, FONT_NORMAL, gStringVar4, CloseItemMessage);
++    }
++    else
++    {
++        DisplayItemMessageOnField(taskId, gStringVar4, Task_CloseCantUseKeyItemMessage);
++    }
++}
++
+ void ItemUseOutOfBattle_PowderJar(u8 taskId)
+ {
+     ConvertIntToDecimalStringN(gStringVar1, GetBerryPowder(), STR_CONV_MODE_LEFT_ALIGN, 5);
+diff --git a/src/new_game.c b/src/new_game.c
+index 80746561b..1e51b6a3e 100644
+--- a/src/new_game.c
++++ b/src/new_game.c
+@@ -184,6 +184,8 @@ void NewGameInitData(void)
+     ClearRoamerLocationData();
+     gSaveBlock1Ptr->registeredItem = ITEM_NONE;
+     ClearBag();
++    AddBagItem(ITEM_GUIDE_EN, 1);
++    AddBagItem(ITEM_GUIDE_ES, 1);
+     NewGameInitPCItems();
+     ClearPokeblocks();
+     ClearDecorationInventories();

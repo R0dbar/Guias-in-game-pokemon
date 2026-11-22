@@ -1,0 +1,185 @@
+From 5ccbdf717d22559703448300e1da3564b13f3c09 Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 15:55:21 +0100
+Subject: [PATCH 1/5] =?UTF-8?q?feat:=20motor=20de=20la=20gu=C3=ADa=20y=20p?=
+ =?UTF-8?q?asos=20hasta=20la=201.=C2=AA=20medalla?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/guide.h        |  9 ++++++
+ ld_script.ld           |  2 ++
+ src/data/guide_steps.h | 68 ++++++++++++++++++++++++++++++++++++++++++
+ src/guide.c            | 50 +++++++++++++++++++++++++++++++
+ 4 files changed, 129 insertions(+)
+ create mode 100644 include/guide.h
+ create mode 100644 src/data/guide_steps.h
+ create mode 100644 src/guide.c
+
+diff --git a/include/guide.h b/include/guide.h
+new file mode 100644
+index 000000000..7d6e7b640
+--- /dev/null
++++ b/include/guide.h
+@@ -0,0 +1,9 @@
++#ifndef GUARD_GUIDE_H
++#define GUARD_GUIDE_H
++
++enum { GUIDE_LANG_EN, GUIDE_LANG_ES, GUIDE_LANG_COUNT };
++
++// Deja en gStringVar4 el objetivo y el destino del primer paso pendiente, o el texto de fin.
++void Guide_BufferCurrentStep(u8 lang);
++
++#endif // GUARD_GUIDE_H
+diff --git a/ld_script.ld b/ld_script.ld
+index 4d8b0ba57..531375749 100644
+--- a/ld_script.ld
++++ b/ld_script.ld
+@@ -183,6 +183,7 @@ SECTIONS {
+         src/safari_zone.o(.text);
+         src/contest_link.o(.text);
+         src/item_use.o(.text);
++        src/guide.o(.text);
+         src/battle_anim_effects_1.o(.text);
+         src/battle_anim_effects_2.o(.text);
+         src/battle_anim_water.o(.text);
+@@ -561,6 +562,7 @@ SECTIONS {
+         src/rotating_gate.o(.rodata);
+         src/contest_link.o(.rodata);
+         src/item_use.o(.rodata);
++        src/guide.o(.rodata);
+         src/battle_anim_effects_1.o(.rodata);
+         src/battle_anim_effects_2.o(.rodata);
+         src/battle_anim_water.o(.rodata);
+diff --git a/src/data/guide_steps.h b/src/data/guide_steps.h
+new file mode 100644
+index 000000000..58e486fad
+--- /dev/null
++++ b/src/data/guide_steps.h
+@@ -0,0 +1,68 @@
++// Pasos de la guía (PoC: hasta la 1.ª medalla). Junto a cada paso, el script donde el juego cumple su condición.
++// tools/check_guide.py lee este formato: cada texto como _("..."), EN y luego ES.
++
++static const struct GuideStep sGuideSteps[] =
++{
++    {
++        .doneFlag = FLAG_RESCUED_BIRCH, // data/maps/Route101/scripts.inc:218
++        .objective = {
++            [GUIDE_LANG_EN] = _("Help PROF. BIRCH."),
++            [GUIDE_LANG_ES] = _("Ayuda a PROF. BIRCH\n(Prof. Abedul)."),
++        },
++        .location = {
++            [GUIDE_LANG_EN] = _("Go to ROUTE 101, north of\nLITTLEROOT TOWN."),
++            [GUIDE_LANG_ES] = _("Ve a ROUTE 101 (Ruta 101), al norte\nde LITTLEROOT TOWN (Villa Raíz)."),
++        },
++    },
++    {
++        .doneFlag = FLAG_DEFEATED_RIVAL_ROUTE103, // data/maps/Route103/scripts.inc:133
++        .objective = {
++            [GUIDE_LANG_EN] = _("Find your rival and battle."),
++            [GUIDE_LANG_ES] = _("Busca a tu rival y lucha contra él."),
++        },
++        .location = {
++            [GUIDE_LANG_EN] = _("Go to ROUTE 103, north of\nOLDALE TOWN."),
++            [GUIDE_LANG_ES] = _("Ve a ROUTE 103 (Ruta 103), al norte\nde OLDALE TOWN (Pueblo Escaso)."),
++        },
++    },
++    {
++        .doneFlag = FLAG_SYS_POKEDEX_GET, // data/maps/LittlerootTown_ProfessorBirchsLab/scripts.inc:537
++        .objective = {
++            [GUIDE_LANG_EN] = _("Get the POKéDEX from PROF. BIRCH."),
++            [GUIDE_LANG_ES] = _("Recoge la POKéDEX que te da\nPROF. BIRCH (Prof. Abedul)."),
++        },
++        .location = {
++            [GUIDE_LANG_EN] = _("Go back to PROF. BIRCH's LAB in\nLITTLEROOT TOWN."),
++            [GUIDE_LANG_ES] = _("Vuelve a su laboratorio en\nLITTLEROOT TOWN (Villa Raíz)."),
++        },
++    },
++    {
++        .doneVar = VAR_PETALBURG_GYM_STATE, // 2 = fin del tutorial de WALLY, data/maps/PetalburgCity_Gym/scripts.inc:90
++        .doneVarMin = 2,
++        .objective = {
++            [GUIDE_LANG_EN] = _("Visit your dad, NORMAN, and\nhelp WALLY."),
++            [GUIDE_LANG_ES] = _("Visita a tu padre, NORMAN, y\nayuda a WALLY (Blasco)."),
++        },
++        .location = {
++            [GUIDE_LANG_EN] = _("Go to the PETALBURG CITY GYM.\pTake ROUTE 102 west from\nOLDALE TOWN."),
++            [GUIDE_LANG_ES] = _("Ve al gimnasio de PETALBURG CITY\n(Ciudad Petalia).\pSigue ROUTE 102 (Ruta 102) al oeste\nde OLDALE TOWN (Pueblo Escaso)."),
++        },
++    },
++    {
++        .doneFlag = FLAG_BADGE01_GET, // data/maps/RustboroCity_Gym/scripts.inc:19
++        .objective = {
++            [GUIDE_LANG_EN] = _("Beat ROXANNE and get the\nSTONE BADGE."),
++            [GUIDE_LANG_ES] = _("Vence a ROXANNE (Petra) y consigue\nla STONE BADGE (Medalla Piedra)."),
++        },
++        .location = {
++            [GUIDE_LANG_EN] = _("Go to the RUSTBORO CITY GYM.\pHead west of PETALBURG CITY, then\nnorth through PETALBURG WOODS."),
++            [GUIDE_LANG_ES] = _("Ve al gimnasio de RUSTBORO CITY\n(Ciudad Férrica).\pCruza ROUTE 104 (Ruta 104) y\nPETALBURG WOODS (Bosque Petalia)."),
++        },
++    },
++};
++
++static const u8 sGuideEndText[GUIDE_LANG_COUNT][GUIDE_TEXT_LEN] =
++{
++    [GUIDE_LANG_EN] = _("You've reached the end of\nthis guide demo."),
++    [GUIDE_LANG_ES] = _("Has llegado al final de\nesta demo de la guía."),
++};
+diff --git a/src/guide.c b/src/guide.c
+new file mode 100644
+index 000000000..18fdbecf4
+--- /dev/null
++++ b/src/guide.c
+@@ -0,0 +1,50 @@
++#include "global.h"
++#include "guide.h"
++#include "event_data.h"
++#include "string_util.h"
++#include "constants/flags.h"
++#include "constants/vars.h"
++
++// Arrays fijos, como .name de los objetos: agbcc no acepta (const u8[])_("...") con texto.
++// shortcut: cada texto ocupa GUIDE_TEXT_LEN bytes aunque sea corto; si la ROM se queda sin sitio, pasar a arrays con nombre.
++// Un texto más largo hace fallar la compilación ("excess elements in array initializer").
++#define GUIDE_TEXT_LEN 160
++
++struct GuideStep {
++    u16 doneFlag;      // se usa si doneVar == 0
++    u16 doneVar;       // si no es 0: completado cuando VarGet(doneVar) >= doneVarMin (las vars empiezan en 0x4000)
++    u16 doneVarMin;
++    u8 objective[GUIDE_LANG_COUNT][GUIDE_TEXT_LEN];
++    u8 location[GUIDE_LANG_COUNT][GUIDE_TEXT_LEN];
++};
++
++#include "data/guide_steps.h"
++
++static const u8 sText_NextBox[] = _("\p");
++
++static bool8 IsStepDone(const struct GuideStep *step)
++{
++    if (step->doneVar != 0)
++        return VarGet(step->doneVar) >= step->doneVarMin;
++    return FlagGet(step->doneFlag);
++}
++
++void Guide_BufferCurrentStep(u8 lang)
++{
++    u32 i;
++
++    if (lang >= GUIDE_LANG_COUNT)
++        lang = GUIDE_LANG_EN;
++
++    for (i = 0; i < ARRAY_COUNT(sGuideSteps); i++)
++    {
++        if (!IsStepDone(&sGuideSteps[i]))
++        {
++            StringCopy(gStringVar4, sGuideSteps[i].objective[lang]);
++            StringAppend(gStringVar4, sText_NextBox);
++            StringAppend(gStringVar4, sGuideSteps[i].location[lang]);
++            return;
++        }
++    }
++    StringCopy(gStringVar4, sGuideEndText[lang]);
++}

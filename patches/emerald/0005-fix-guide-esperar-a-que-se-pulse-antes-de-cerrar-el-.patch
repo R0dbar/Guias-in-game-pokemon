@@ -1,0 +1,31 @@
+From a1dd9a8ca841cdc1a7346f0d14a48c7e9f41018a Mon Sep 17 00:00:00 2001
+From: Rodri <151568131+R0dbar@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 18:04:55 +0100
+Subject: [PATCH 5/5] fix(guide): esperar a que se pulse antes de cerrar el
+ mensaje de los objetos
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+DisplayItemMessage/DisplayItemMessageOnField llaman a su callback al acabar de
+escribir el texto; los mensajes de objeto del juego (gText_CoinCase…) terminan
+en {PAUSE_UNTIL_PRESS}. Sin ella la última caja de la guía se cerraba sola.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/item_use.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/item_use.c b/src/item_use.c
+index cad58c83d..763b29d94 100755
+--- a/src/item_use.c
++++ b/src/item_use.c
+@@ -659,6 +659,8 @@ void ItemUseOutOfBattle_CoinCase(u8 taskId)
+ void ItemUseOutOfBattle_Guide(u8 taskId)
+ {
+     Guide_BufferCurrentStep(gSpecialVar_ItemId == ITEM_GUIDE_ES ? GUIDE_LANG_ES : GUIDE_LANG_EN);
++    // El mensaje de objeto se cierra al acabar de escribirse; como gText_CoinCase, esperar a que se pulse.
++    StringAppend(gStringVar4, gText_PauseUntilPress);
+ 
+     if (!gTasks[taskId].tUsingRegisteredKeyItem)
+     {

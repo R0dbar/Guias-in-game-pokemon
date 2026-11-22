@@ -1,0 +1,42 @@
+# Clones externos: el juego (nuestros cambios van como parches en patches/emerald/) y su compilador
+/emerald/
+/agbcc/
+
+# Nunca ROMs, BIOS, claves, partidas ni savestates
+*.gb
+*.gbc
+*.gba
+*.nds
+*.srl
+*.3ds
+*.cia
+*.cci
+*.cxi
+*.sav
+*.dsv
+*.ss[0-9]
+*.bps
+gba_bios.bin
+bios7.bin
+bios9.bin
+firmware.bin
+aes_keys.txt
+seeddb.bin
+/saves/
+
+# Trabajo local
+.superpowers/
+.claude/settings.local.json
+__pycache__/
+*.pyc
+
+# Editores y sistema
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Solo para trabajo local (no se publican)
+/AGENTS.md
+/docs/superpowers/
